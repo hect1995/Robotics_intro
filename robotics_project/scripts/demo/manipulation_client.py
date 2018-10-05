@@ -56,7 +56,7 @@ class SphericalService(object):
 		self.place_gui = rospy.Service(self.place_srv_nm, SetBool, self.start_aruco_place)
 		self.pick_gui = rospy.Service(self.pick_srv_nm, SetBool, self.start_aruco_pick)
 		self.move_head_srv = rospy.Service(self.mv_head_srv_nm, MoveHead, self.move_head)
-		
+
 		self.head_cmd = rospy.Publisher('/head_controller/command', JointTrajectory, queue_size=1)
 
 		rospy.loginfo("Launching SphericalService constructor")
@@ -92,7 +92,7 @@ class SphericalService(object):
 			response.success = True
 		else:
 			response.success = False
-		
+
 		jtp.time_from_start = rospy.Duration(2.0)
 		jt.points.append(jtp)
 		rospy.loginfo("Moving head " + req.motion)
@@ -110,7 +110,7 @@ class ManipulateAruco(object):
 		self.bridge = CvBridge()
 		self.tfBuffer = tf2_ros.Buffer()
 		self.tf_l = tf2_ros.TransformListener(self.tfBuffer)
-		        
+
 		rospy.loginfo("Waiting for /pickup_pose AS...")
 		self.pick_as = SimpleActionClient(self.pickup_pose_top, PickUpPoseAction)
 		self.pick_as.wait_for_server()
@@ -145,7 +145,7 @@ class ManipulateAruco(object):
 
    	def strip_leading_slash(self, s):
 		return s[1:] if s.startswith("/") else s
-		
+
 	def pick_and_place_aruco(self, string_operation):
 
 		success = False
@@ -171,7 +171,7 @@ class ManipulateAruco(object):
 			transform_ok = False
 			while not transform_ok and not rospy.is_shutdown():
 				try:
-					transform = self.tfBuffer.lookup_transform("base_footprint", 
+					transform = self.tfBuffer.lookup_transform("base_footprint",
 										   ps.header.frame_id,
 										   rospy.Time(0))
 					aruco_ps = do_transform_pose(ps, transform)
@@ -200,9 +200,9 @@ class ManipulateAruco(object):
 			if str(moveit_error_dict[result.error_code]) != "SUCCESS":
 				rospy.logerr("Failed to pick, not trying further")
 				success = False
-			else: 
+			else:
 				success = True
-					
+
 			self.prepare_robot_nav()
 			return success
 
@@ -217,9 +217,9 @@ class ManipulateAruco(object):
 			if str(moveit_error_dict[result.error_code]) != "SUCCESS":
 				rospy.logerr("Failed to place, not trying further")
 				success = False
-			else: 	
+			else:
 				success = True
-			
+
 			return success
 
         def move_torso(self, string_operation):
@@ -269,4 +269,3 @@ if __name__ == '__main__':
 	rospy.init_node('manipulation_client')
 	sphere = SphericalService()
 	rospy.spin()
-
