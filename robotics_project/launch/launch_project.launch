@@ -56,7 +56,7 @@
     </node> -->
 
     <!-- Project RGBD point cloud to laser-scan -->
-<!--     <include file="$(find tiago_laser_sensors)/launch/rgbd_depth_laser.launch">
+  <!--     <include file="$(find tiago_laser_sensors)/launch/rgbd_depth_laser.launch">
       <arg name="image"     value="xtion/depth_registered/image_raw"/>
       <arg name="scan"      value="rgbd_scan"/>
       <arg name="multiple"  value="$(arg multiple)"/>
@@ -124,14 +124,14 @@
     </node>
 
     <!-- Aruco marker detector -->
-<!--     <node pkg="aruco_ros" type="single"  name="aruco_single" output="screen">
+    <node pkg="aruco_ros" type="single"  name="aruco_single" output="screen">
         <remap from="/camera_info"        to="/xtion/rgb/camera_info" />
         <remap from="/image"              to="/xtion/rgb/image_rect_color" />
-        <param name="marker_pose_topic"   value="/place_holder11"/>
+        <param name="marker_pose_topic"   value="/$(arg namespace_project)/marker_pose_topic"/>
         <param name="base_frame"          value="/base_footprint"/>
         <param name="camera_frame"        value="xtion_rgb_optical_frame"/>
         <param name="marker_frame"        value="aruco_frame" />
-    </node> -->
+    </node>
   </group>
 
   <!-- Map providers -->
