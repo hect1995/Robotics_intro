@@ -34,24 +34,24 @@ class StateMachine(object):
         self.pick_srv_nm = rospy.get_param(rospy.get_name() + '/pick_srv')
         # Added Hector
         self.place_srv_nm = rospy.get_param(rospy.get_name() + '/place_srv')
+        self.pick_top = rospy.get_param(rospy.get_name() + '/pick_pose_topic')
+
 
         #self.aruco_pose_top = rospy.get_param(rospy.get_name() + '/marker_pose_topic')
         self.cube_pose = rospy.get_param(rospy.get_name() + '/cube_pose')
-
+        self.localize_myself = rospy.get_param(rospy.get_name() + '/global_loc_srv')
+        self.clear_cost_map = rospy.get_param(rospy.get_name() + '/clear_costmaps_srv')
         rospy.loginfo("%s: ...A...", self.node_name)
         # Subscribe to topics
-
+        #self.pick_pose_sub = rospy.Subscriber(self.pick_top, PoseStamped, self.callback_pick_pos)
         # Wait for service providers
         rospy.wait_for_service(self.mv_head_srv_nm, timeout=30)
-        # ADDED HECTOR
+        # ADDED HECTORstd_srvs
         rospy.wait_for_service(self.pick_srv_nm, timeout=30)
 
         # Instantiate publishers
         self.cmd_vel_pub = rospy.Publisher(self.cmd_vel_top, Twist, queue_size=10)
-        # ADDED BY HECTOR
-        #self.cmd_vel_pub = rospy.Publisher(self.aruco_pose_top, PoseStamped, queue_size=10)
-		#self.pick_gui = rospy.Publisher(self.pick_srv_nm, SetBool, queue_size=10)
-        rospy.loginfo("%s: ...B...", self.node_name)
+
 
 
         # Set up action clients
@@ -64,19 +64,48 @@ class StateMachine(object):
 
         # Init state machine
         self.state = 0
-        rospy.sleep(3)
+        #rospy.sleep(1)
         self.check_states()
-
 
     def check_states(self):
 
         while not rospy.is_shutdown() and self.state != 6:
-
-            # State 0: Move the robot "manually" to door
-            # We change state 0 because we are already in front of the table
-
-            # State 0:  Tuck arm
+            # State 0:  Localize myself
             if self.state == 0:
+                rospy.loginfo("%s: STATE 0", self.node_name)
+                localize_myself_var = rospy.ServiceProxy(self.localize_myself, Empty)
+                localize_req = localize_myself_var()
+                rospy.loginfo("%s: Localization initialized", self.node_name)
+                self.state = 10
+                rospy.sleep(1)
+
+            # State 10:  Turn around in order to localize in the right direction
+            if self.state == 10:
+                rate = rospy.Rate(10)
+                movement = Twist()
+                movement.angular.z = 1
+                cnt = 0
+                while cnt<20:
+                    self.cmd_vel_pub.publish(movement)
+                    rate.sleep()
+                    cnt = cnt + 1
+                self.state = 11
+                rospy.loginfo("%s: After turning Im supposed to know where am I", self.node_name)
+                rospy.sleep(1)
+
+            # State 11:  Clear costmaps
+            if self.state == 11:
+                clear_cost_m = rospy.ServiceProxy(self.clear_cost_map, Empty)
+                clear_cost_m()
+                #self.state = 11
+                rospy.loginfo("%s: Costmaps cleared", self.node_name)
+                rospy.sleep(1)
+
+
+
+            # State X:  Localize myself
+            if self.state == 11:
+
                 rospy.loginfo("%s: Tucking the arm...", self.node_name)
                 goal = PlayMotionGoal()
                 goal.motion_name = "home"
@@ -90,12 +119,12 @@ class StateMachine(object):
                     self.state = 5
                 else:
                     rospy.loginfo("%s: Arm pre-grasped.", self.node_name)
-                    self.state = 1
+                    self.state = 2
 
                 rospy.sleep(1)
 
             # State 1: Move head down
-            if self.state == 1:
+            """if self.state == 1:
                 try:
                     rospy.loginfo("%s: Lowering robot head", self.node_name)
                     move_head_srv = rospy.ServiceProxy(self.mv_head_srv_nm, MoveHead)
@@ -111,7 +140,7 @@ class StateMachine(object):
                     rospy.sleep(3)
 
                 except rospy.ServiceException, e:
-                    print "Service call to move_head server failed: %s"%e
+                    print "Service call to move_head server failed: %s"%e"""
 
             # State 1: Pick cube
             if self.state == 2:
@@ -181,6 +210,7 @@ class StateMachine(object):
                 place_cube_req = place_the_cube(True)
 
                 if place_cube_req.success == True:
+
                     rospy.loginfo("%s: Place cube succeded! Job done", self.node_name)
                     return
 
