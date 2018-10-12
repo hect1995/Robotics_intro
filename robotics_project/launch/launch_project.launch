@@ -25,7 +25,8 @@
   <!-- Robot pose in Gazebo for Tasks E and C -->
   <!--<arg name="gzpose"         default="-x -1.146 -y -6.145 -z -0.001 -R -0.002 -P 0.001 -Y -1.593"/>-->
   <!-- Robot pose in Gazebo for Task A -->
-  <arg name="gzpose"     default="-x 2.40 -y -11.0 -z -0.003 -R 0.0 -P 0.0 -Y 70.0"/>
+  <!--<arg name="gzpose"     default="-x 2.40 -y -11.0 -z -0.003 -R 0.0 -P 0.0 -Y 70.0"/>-->
+  <arg name="gzpose"     default="-x 0 -y 0 -z -0.003 -R 0.0 -P 0.0 -Y 70.0"/>
 
   <!-- Simulation -->
   <arg name="robot"       default="steel"/>

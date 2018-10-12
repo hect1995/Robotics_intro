@@ -33,7 +33,11 @@ class StateMachine(object):
 
     def pos_check_aruco_there(self, msg):
         self.time_data = msg.header.stamp.secs
+        self.z_coordinate_cube = msg.pose.position.z
 
+    def check_it_get_table(self, msg):
+        self.x_coord_robot = msg.pose.pose.position.x
+        self.y_coord_robot = msg.pose.pose.position.y
 
 
     def __init__(self):
@@ -66,6 +70,8 @@ class StateMachine(object):
 
         self.check_coord = rospy.Subscriber(self.aruco_pose_top, PoseStamped, self.pos_check_aruco_there)
 
+        # ADDED AT LAST movement
+        self.check_coord = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.check_it_get_table)
 
         # Wait for service providers
         rospy.wait_for_service(self.mv_head_srv_nm, timeout=30)
@@ -241,11 +247,21 @@ class StateMachine(object):
                 if reached_point:
                     self.move_to_dir.cancel_goal()
                     rospy.logerr("%s: I reach the table to place the cube", self.node_name)
-                    self.state = 18
+                    self.state = 21
                 else:
                     rospy.loginfo("%s: I couldnt reach the table to place the cube", self.node_name)
                     self.state = 6
                 #rospy.sleep(1)
+
+            # ADDED AT THE END
+            if self.state == 21:
+                if (((self.x_coord_robot-2.6009)**2)+((self.y_coord_robot+1.7615)**2)>1):
+                    rospy.logerr("%s: DESTINATION NOT REACHED", self.node_name)
+                    self.state = 6
+
+                else:
+                    rospy.loginfo("%s: I REACH THE TABLE", self.node_name)
+                    self.state = 18
 
 
             # State 18:  Lower robot head service
@@ -259,7 +275,7 @@ class StateMachine(object):
                         self.state = 19
                         rospy.loginfo("%s: Move head down succeded!", self.node_name)
                     else:
-                        rospy.loginfo("%s: Move head down failed!", self.node_name)
+                        rospy.logerr("%s: Move head down failed!", self.node_name)
                         self.state = 6
 
                     #rospy.sleep(1)
@@ -285,12 +301,33 @@ class StateMachine(object):
 
             if self.state == 20:
                 if (rospy.get_rostime().secs > 1 + self.time_data):
-                    rospy.logerr("%s: CUBE LOST", self.node_name)
-                    self.state = 6
-                    
+                    rospy.logerr("%s: I DONT SEE CUBE NOW, LETS TURN A ROUND AND CHECK AGAIN", self.node_name)
+                    self.state = 22
+
                 else:
-                    rospy.loginfo("%s: CUBE GOOD", self.node_name)
+                    rospy.loginfo("%s: I SEE THE CUBE BUT CHECK IF IT IS ON TABLE", self.node_name)
+                    self.state = 23
+
+            if self.state == 22:
+                movement = Twist()
+                movement.angular.z = 1
+                cnt = 0
+                while cnt<20:
+                    self.cmd_vel_pub.publish(movement)
+                    if (rospy.get_rostime().secs < 1 + self.time_data):
+                        rospy.loginfo("%s: AFTER TURNING I FOUND THE CUBE", self.node_name)
+                        self.state = 23
+                    rate.sleep()
+                    cnt = cnt + 1
+                self.state =6
+
+            if self.state == 23:
+                if (self.z_coordinate_cube > 0.4):
+                    rospy.loginfo("%s: IS ON TABLE", self.node_name)
                     return
+                else:
+                    rospy.loginfo("%s:CUBE POSSIBLY ON GROUND", self.node_name)
+                    self.state = 6
 
 
                 #rospy.sleep(1)
